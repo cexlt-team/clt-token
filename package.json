@@ -4,5 +4,11 @@
   "main": "index.js",
   "repository": "https://github.com/cexlt-team/clt-token.git",
   "author": "LEE Harold <harold@freeex.io>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "solc": "0.6.10"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.1.0"
+  }
 }
