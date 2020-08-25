@@ -45,6 +45,18 @@ contract('CLT', accounts => {
     expect(newAllowance).to.be.bignumber.equal(validAllowance);
   });
 
+  it('cannot transfer tokens from an address greater than allowance', async () => {
+    const newAllowance = web3.utils.toBN(approveAmount).add(web3.utils.toBN(ether('100')));
+    await expectRevert(clt.transferFrom(owner, receiver, newAllowance, { from: spender }), 'VM Exception while processing transaction: revert');
+  });
+
+  it('cannot transfer tokens from an address greater than owners balance', async () => {
+    const balance = await clt.balanceOf(owner);
+    await clt.approve(spender, balance);
+    const newAmount = web3.utils.toBN(balance.toString()).add(web3.utils.toBN(ether('100')));
+    await expectRevert(clt.transferFrom(owner, receiver, newAmount, { from: spender }), 'VM Exception while processing transaction: revert');
+  });
+
   it('transfer token, but 1% destoryed', async () => {
     const onePercent = 500 * 0.01;
     const transferAmount = ether('500');
@@ -70,5 +82,17 @@ contract('CLT', accounts => {
 
     expect(validBalance).to.be.bignumber.equal(newSpenderBalance);
     expect(validTotal).to.be.bignumber.equal(totalSupply);
+  });
+
+  it('can transfer tokens from an address after increase allowance', async () => {
+    await clt.upAllowance(spender, ether('200'))
+    const newAllowance = web3.utils.toBN(approveAmount).add(web3.utils.toBN(ether('100')));
+    await clt.transferFrom(owner, receiver, newAllowance, { from: spender });
+  });
+
+  it('can transfer tokens from an address after decrease allowance', async () => {
+    await clt.downAllowance(spender, ether('100'))
+    const newAllowance = web3.utils.toBN(approveAmount).sub(web3.utils.toBN(ether('100')));
+    await clt.transferFrom(owner, receiver, newAllowance, { from: spender });
   });
 });
