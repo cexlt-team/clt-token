@@ -46,7 +46,7 @@ contract CLT is ERC20 {
     return cutValue;
   }
 
-  /// @notice Returns Value of calculate the quantity to destory during transfer
+  /// @notice From owner address sends value to address.
   function transfer(address to, uint256 value) public virtual override returns (bool) {
     require(value <= _balances[msg.sender]);
     require(to != address(0));
