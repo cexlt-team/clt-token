@@ -710,10 +710,10 @@ contract CLT is ERC20 {
   mapping (address => uint256) private _balances;
   mapping (address => mapping (address => uint256)) private _allowed;
 
-  string constant tokenName = "Cex token\'s Liquidity Token";
+  string constant tokenName = "CLT";
   string constant tokenSymbol = "CLT";
   uint8  constant tokenDecimals = 18;
-  uint256 _totalSupply = 101010101010101010101010101;
+  uint256 _totalSupply = 101010101010101010101010102;
   uint256 public basePercent = 100;
 
   constructor() public payable ERC20(tokenName, tokenSymbol) {
