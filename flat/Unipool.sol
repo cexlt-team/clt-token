@@ -488,15 +488,11 @@ library SafeERC20 {
 
 // File: contracts/Unipool.sol
 
-interface ApproveAndCallFallBack {
-  function receiveApproval(address _from, uint256 _amount, address _token, bytes calldata _data) external;
-}
-
 contract CLTokenWrapper {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  IERC20 public UNI = IERC20(0xB02725788558F4633E611340a1951b89F3a0e2C9);
+  IERC20 public UNI = IERC20(0x0F1b7D5E235098e9dA4AE78199021d7938C77AE6);
 
   uint256 private _totalSupply;
   mapping(address => uint256) private _balances;
@@ -522,65 +518,17 @@ contract CLTokenWrapper {
   }
 }
 
-contract Unipool is CLTokenWrapper, ApproveAndCallFallBack {
-  uint256 public constant DURATION = 1 days;
-
-  IERC20 public CLT = IERC20(0x12071872F51A0214bD05312B00dDE2D4d2a21B43);
-
-  uint256 public periodFinish;
-  uint256 public rewardRate;
-  uint256 public lastUpdateTime;
-  uint256 public rewardPerTokenStored;
-  mapping(address => uint256) public userRewardPerTokenPaid;
-  mapping(address => uint256) public rewards;
-
-  event RewardAdded(uint256 reward);
+contract Unipool is CLTokenWrapper {
   event Staked(address indexed user, uint256 amount);
   event Withdrawn(address indexed user, uint256 amount);
-  event RewardPaid(address indexed user, uint256 reward);
 
-  modifier updateReward(address account) {
-    rewardPerTokenStored = rewardPerToken();
-    lastUpdateTime = lastTimeRewardApplicable();
-    if (account != address(0)) {
-      rewards[account] = earned(account);
-      userRewardPerTokenPaid[account] = rewardPerTokenStored;
-    }
-    _;
-  }
-
-  function lastTimeRewardApplicable() public view returns (uint256) {
-    return Math.min(block.timestamp, periodFinish);
-  }
-
-  function rewardPerToken() public view returns (uint256) {
-    if (totalSupply() == 0) {
-      return rewardPerTokenStored;
-    }
-
-    return rewardPerTokenStored.add(
-      lastTimeRewardApplicable()
-        .sub(lastUpdateTime)
-        .mul(rewardRate)
-        .mul(1e18)
-        .div(totalSupply())
-    );
-  }
-
-  function earned(address account) public view returns (uint256) {
-    return balanceOf(account)
-            .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
-            .div(1e18)
-            .add(rewards[account]);
-  }
-
-  function stake(uint256 amount) public override updateReward(msg.sender) {
+  function stake(uint256 amount) public override {
     require(amount > 0, 'Cannot Stake 0');
     super.stake(amount);
     emit Staked(msg.sender, amount);
   }
 
-  function withdraw(uint256 amount) public override updateReward(msg.sender) {
+  function withdraw(uint256 amount) public override {
     require(amount > 0, "Cannot withdraw 0");
     super.withdraw(amount);
     emit Withdrawn(msg.sender, amount);
@@ -588,37 +536,5 @@ contract Unipool is CLTokenWrapper, ApproveAndCallFallBack {
 
   function exit() external {
     withdraw(balanceOf(msg.sender));
-    getReward();
-  }
-
-  function getReward() public updateReward(msg.sender) {
-    uint256 reward = earned(msg.sender);
-    if (reward > 0) {
-      rewards[msg.sender] = 0;
-      CLT.safeTransfer(msg.sender, reward);
-      emit RewardPaid(msg.sender, reward);
-    }
-  }
-
-  function receiveApproval(address _from, uint256 _amount, address _token, bytes calldata) override external updateReward(address(0)) {
-    require(_amount > 0, "Cannot approve 0");
-    require(
-        _token == msg.sender && _token == address(CLT),
-        "Wrong token"
-    );
-
-    if (block.timestamp >= periodFinish) {
-        rewardRate = _amount.div(DURATION);
-    } else {
-        uint256 remaining = periodFinish.sub(block.timestamp);
-        uint256 leftover = remaining.mul(rewardRate);
-        rewardRate = _amount.add(leftover).div(DURATION);
-    }
-    lastUpdateTime = block.timestamp;
-    periodFinish = block.timestamp.add(DURATION);
-
-    CLT.safeTransferFrom(_from, address(this), _amount);
-
-    emit RewardAdded(_amount);
   }
 }
